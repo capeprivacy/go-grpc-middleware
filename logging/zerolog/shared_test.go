@@ -3,14 +3,14 @@ package grpc_zerolog_test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog/ctxzr"
+	"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
 	"io"
 	"testing"
 
 	"context"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
-	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
+	grpc_ctxtags "github.com/Ahmet-Kaplan/go-grpc-middleware/tags"
+	grpc_testing "github.com/Ahmet-Kaplan/go-grpc-middleware/testing"
+	pb_testproto "github.com/Ahmet-Kaplan/go-grpc-middleware/testing/testproto"
 	"github.com/rs/zerolog"
 )
 

@@ -2,7 +2,7 @@ package ctxzr
 
 import (
 	"context"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_ctxtags "github.com/Ahmet-Kaplan/go-grpc-middleware/tags"
 	"github.com/rs/zerolog"
 )
 

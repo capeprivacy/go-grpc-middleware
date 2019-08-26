@@ -3,12 +3,12 @@ package grpc_zerolog
 import (
 	"bytes"
 	"fmt"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog/ctxzr"
+	"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
 
 	"context"
+	grpc_logging "github.com/Ahmet-Kaplan/go-grpc-middleware/logging"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	grpc_logging "github.com/grpc-ecosystem/go-grpc-middleware/logging"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
