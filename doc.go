@@ -1,4 +1,4 @@
-logging/doc.go // Copyright 2016 Michal Witkowski. All Rights Reserved.
+// Copyright 2016 Michal Witkowski. All Rights Reserved.
 // See LICENSE for licensing terms.
 
 /*

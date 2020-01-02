@@ -1,4 +1,4 @@
-module github.com/grpc-ecosystem/go-grpc-middleware
+module github.com/capeprivacy/go-grpc-middleware
 
 require (
 	github.com/go-kit/kit v0.9.0
