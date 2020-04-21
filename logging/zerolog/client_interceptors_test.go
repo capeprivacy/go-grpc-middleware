@@ -1,19 +1,21 @@
 package grpc_zerolog_test
 
 import (
-	grpc_zerolog "github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog"
-	"github.com/rs/zerolog"
 	"io"
 	"runtime"
 	"strings"
 	"testing"
 
-	pb_testproto "github.com/Ahmet-Kaplan/go-grpc-middleware/testing/testproto"
+	"github.com/rs/zerolog"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+
+	grpc_zerolog "github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog"
+	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 )
 
 func customClientCodeToLevel(c codes.Code) zerolog.Level {

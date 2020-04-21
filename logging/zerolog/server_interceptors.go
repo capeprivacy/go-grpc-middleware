@@ -1,16 +1,17 @@
 package grpc_zerolog
 
 import (
-	"github.com/rs/zerolog"
+	"context"
 	"path"
 	"time"
 
-	"context"
-	grpc_middleware "github.com/Ahmet-Kaplan/go-grpc-middleware"
-	//"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
-	"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
+	"github.com/rs/zerolog"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog/ctxzr"
 )
 
 var (

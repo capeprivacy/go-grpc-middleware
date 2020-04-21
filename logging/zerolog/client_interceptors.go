@@ -1,12 +1,14 @@
-package zerolog
+package grpc_zerolog
 
 import (
 	"context"
-	"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
-	"github.com/rs/zerolog"
-	"google.golang.org/grpc"
 	"path"
 	"time"
+
+	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog/ctxzr"
 )
 
 // UnaryClientInterceptor returns a new unary client interceptor that optionally logs the execution of external gRPC calls.

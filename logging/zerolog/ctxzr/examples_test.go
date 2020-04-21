@@ -2,9 +2,10 @@ package ctxzr_test
 
 import (
 	"context"
-	"github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog/ctxzr"
-	"github.com/Ahmet-Kaplan/go-grpc-middleware/tags"
-	pb_testproto "github.com/Ahmet-Kaplan/go-grpc-middleware/testing/testproto"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog/ctxzr"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 )
 
 // Simple unary handler that adds custom fields to the requests's context. These will be used for all log statements.

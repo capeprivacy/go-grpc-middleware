@@ -1,21 +1,23 @@
 package grpc_zerolog_test
 
 import (
-	"github.com/rs/zerolog"
+	"context"
 	"io"
 	"runtime"
 	"strings"
 	"testing"
 
-	"context"
-	grpc_middleware "github.com/Ahmet-Kaplan/go-grpc-middleware"
-	grpc_zerolog "github.com/Ahmet-Kaplan/go-grpc-middleware/logging/zerolog"
-	grpc_ctxtags "github.com/Ahmet-Kaplan/go-grpc-middleware/tags"
-	pb_testproto "github.com/Ahmet-Kaplan/go-grpc-middleware/testing/testproto"
+	"github.com/rs/zerolog"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
+
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_zerolog "github.com/grpc-ecosystem/go-grpc-middleware/logging/zerolog"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 )
 
 func TestZRPayloadSuite(t *testing.T) {
