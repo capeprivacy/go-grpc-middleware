@@ -7,10 +7,10 @@ import (
 	"io"
 	"testing"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags/logrus"
-	"github.com/grpc-ecosystem/go-grpc-middleware/testing"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
 	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -35,8 +35,8 @@ func customCodeToLevel(c codes.Code) logrus.Level {
 
 func (s *loggingPingService) Ping(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
 	grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
-	ctx_logrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
-	ctx_logrus.Extract(ctx).Info("some ping")
+	ctxlogrus.AddFields(ctx, logrus.Fields{"custom_field": "custom_value"})
+	ctxlogrus.Extract(ctx).Info("some ping")
 	return s.TestServiceServer.Ping(ctx, ping)
 }
 
@@ -46,8 +46,8 @@ func (s *loggingPingService) PingError(ctx context.Context, ping *pb_testproto.P
 
 func (s *loggingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_testproto.TestService_PingListServer) error {
 	grpc_ctxtags.Extract(stream.Context()).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
-	ctx_logrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
-	ctx_logrus.Extract(stream.Context()).Info("some pinglist")
+	ctxlogrus.AddFields(stream.Context(), logrus.Fields{"custom_field": "custom_value"})
+	ctxlogrus.Extract(stream.Context()).Info("some pinglist")
 	return s.TestServiceServer.PingList(ping, stream)
 }
 
@@ -102,4 +102,26 @@ func (s *logrusBaseSuite) getOutputJSONs() []map[string]interface{} {
 	}
 
 	return ret
+}
+
+func StubMessageProducer(ctx context.Context, format string, level logrus.Level, code codes.Code, err error, fields logrus.Fields) {
+	if err != nil {
+		fields[logrus.ErrorKey] = err
+	}
+	format = "custom message"
+	entry := ctxlogrus.Extract(ctx).WithContext(ctx).WithFields(fields)
+	switch level {
+	case logrus.DebugLevel:
+		entry.Debugf(format)
+	case logrus.InfoLevel:
+		entry.Infof(format)
+	case logrus.WarnLevel:
+		entry.Warningf(format)
+	case logrus.ErrorLevel:
+		entry.Errorf(format)
+	case logrus.FatalLevel:
+		entry.Fatalf(format)
+	case logrus.PanicLevel:
+		entry.Panicf(format)
+	}
 }

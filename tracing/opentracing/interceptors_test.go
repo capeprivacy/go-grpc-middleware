@@ -13,24 +13,31 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/grpc-ecosystem/go-grpc-middleware/testing"
-	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/grpc-ecosystem/go-grpc-middleware/testing"
+	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
+	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 var (
-	goodPing           = &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999}
-	fakeInboundTraceId = 1337
-	fakeInboundSpanId  = 999
+	goodPing                = &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999}
+	fakeInboundTraceId      = 1337
+	fakeInboundSpanId       = 999
+	traceHeaderName         = "uber-trace-id"
+	filterFunc              = func(ctx context.Context, fullMethodName string) bool { return true }
+	unaryRequestHandlerFunc = func(span opentracing.Span, req interface{}) {
+		span.LogFields(log.Bool("unary-request-handler", true))
+	}
 )
 
 type tracingAssertService struct {
@@ -77,6 +84,9 @@ func TestTaggingSuite(t *testing.T) {
 	mockTracer := mocktracer.New()
 	opts := []grpc_opentracing.Option{
 		grpc_opentracing.WithTracer(mockTracer),
+		grpc_opentracing.WithFilterFunc(filterFunc),
+		grpc_opentracing.WithTraceHeaderName(traceHeaderName),
+		grpc_opentracing.WithUnaryRequestHandlerFunc(unaryRequestHandlerFunc),
 	}
 	s := &OpentracingSuite{
 		mockTracer:           mockTracer,
@@ -91,6 +101,7 @@ func TestTaggingSuiteJaeger(t *testing.T) {
 	mockTracer.RegisterExtractor(opentracing.HTTPHeaders, jaegerFormatExtractor{})
 	opts := []grpc_opentracing.Option{
 		grpc_opentracing.WithTracer(mockTracer),
+		grpc_opentracing.WithUnaryRequestHandlerFunc(unaryRequestHandlerFunc),
 	}
 	s := &OpentracingSuite{
 		mockTracer:           mockTracer,
@@ -100,7 +111,6 @@ func TestTaggingSuiteJaeger(t *testing.T) {
 }
 
 func makeInterceptorTestSuite(t *testing.T, opts []grpc_opentracing.Option) *grpc_testing.InterceptorTestSuite {
-
 	return &grpc_testing.InterceptorTestSuite{
 		TestService: &tracingAssertService{TestServiceServer: &grpc_testing.TestPingService{T: t}, T: t},
 		ClientOpts: []grpc.DialOption{
@@ -134,7 +144,7 @@ func (s *OpentracingSuite) createContextFromFakeHttpRequestParent(ctx context.Co
 	}
 
 	hdr := http.Header{}
-	hdr.Set("uber-trace-id", fmt.Sprintf("%d:%d:%d:%d", fakeInboundTraceId, fakeInboundSpanId, fakeInboundSpanId, jFlag))
+	hdr.Set(traceHeaderName, fmt.Sprintf("%d:%d:%d:%d", fakeInboundTraceId, fakeInboundSpanId, fakeInboundSpanId, jFlag))
 	hdr.Set("mockpfx-ids-traceid", fmt.Sprint(fakeInboundTraceId))
 	hdr.Set("mockpfx-ids-spanid", fmt.Sprint(fakeInboundSpanId))
 	hdr.Set("mockpfx-ids-sampled", fmt.Sprint(sampled))
@@ -180,6 +190,26 @@ func (s *OpentracingSuite) TestPing_PropagatesTraces() {
 	_, err := s.Client.Ping(ctx, goodPing)
 	require.NoError(s.T(), err, "there must be not be an on a successful call")
 	s.assertTracesCreated("/mwitkow.testproto.TestService/Ping")
+}
+
+func (s *OpentracingSuite) TestPing_WithUnaryRequestHandlerFunc() {
+	ctx := s.createContextFromFakeHttpRequestParent(s.SimpleCtx(), true)
+	_, err := s.Client.Ping(ctx, goodPing)
+	require.NoError(s.T(), err, "there must be not be an on a successful call")
+
+	var hasLogKey bool
+Loop:
+	for _, span := range s.mockTracer.FinishedSpans() {
+		for _, record := range span.Logs() {
+			for _, field := range record.Fields {
+				if field.Key == "unary-request-handler" {
+					hasLogKey = true
+					break Loop
+				}
+			}
+		}
+	}
+	require.True(s.T(), hasLogKey, "span field 'unary-request-handler' not found")
 }
 
 func (s *OpentracingSuite) TestPing_ClientContextTags() {
@@ -240,7 +270,7 @@ func (jaegerFormatInjector) Inject(ctx mocktracer.MockSpanContext, carrier inter
 	if ctx.Sampled {
 		flags = 1
 	}
-	w.Set("uber-trace-id", fmt.Sprintf("%d:%d::%d", ctx.TraceID, ctx.SpanID, flags))
+	w.Set(traceHeaderName, fmt.Sprintf("%d:%d::%d", ctx.TraceID, ctx.SpanID, flags))
 
 	return nil
 }
@@ -256,10 +286,9 @@ func (jaegerFormatExtractor) Extract(carrier interface{}) (mocktracer.MockSpanCo
 	err := reader.ForeachKey(func(key, val string) error {
 		lowerKey := strings.ToLower(key)
 		switch {
-		case lowerKey == "uber-trace-id":
+		case lowerKey == traceHeaderName:
 			parts := strings.Split(val, ":")
 			if len(parts) != 4 {
-
 				return errors.New("invalid trace id format")
 			}
 			traceId, err := strconv.Atoi(parts[0])

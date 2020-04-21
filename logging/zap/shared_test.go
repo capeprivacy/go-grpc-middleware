@@ -7,12 +7,13 @@ import (
 	"io"
 	"testing"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	"github.com/grpc-ecosystem/go-grpc-middleware/tags/zap"
-	"github.com/grpc-ecosystem/go-grpc-middleware/testing"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
 	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc/codes"
 )
 
 var (
@@ -25,8 +26,8 @@ type loggingPingService struct {
 
 func (s *loggingPingService) Ping(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
 	grpc_ctxtags.Extract(ctx).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
-	ctx_zap.AddFields(ctx, zap.String("custom_field", "custom_value"))
-	ctx_zap.Extract(ctx).Info("some ping")
+	ctxzap.AddFields(ctx, zap.String("custom_field", "custom_value"))
+	ctxzap.Extract(ctx).Info("some ping")
 	return s.TestServiceServer.Ping(ctx, ping)
 }
 
@@ -36,7 +37,7 @@ func (s *loggingPingService) PingError(ctx context.Context, ping *pb_testproto.P
 
 func (s *loggingPingService) PingList(ping *pb_testproto.PingRequest, stream pb_testproto.TestService_PingListServer) error {
 	grpc_ctxtags.Extract(stream.Context()).Set("custom_tags.string", "something").Set("custom_tags.int", 1337)
-	ctx_zap.Extract(stream.Context()).Info("some pinglist")
+	ctxzap.Extract(stream.Context()).Info("some pinglist")
 	return s.TestServiceServer.PingList(ping, stream)
 }
 
@@ -103,4 +104,13 @@ func (s *zapBaseSuite) getOutputJSONs() []map[string]interface{} {
 	}
 
 	return ret
+}
+
+func StubMessageProducer(ctx context.Context, msg string, level zapcore.Level, code codes.Code, err error, duration zapcore.Field) {
+	// re-extract logger from newCtx, as it may have extra fields that changed in the holder.
+	ctxzap.Extract(ctx).Check(level, "custom message").Write(
+		zap.Error(err),
+		zap.String("grpc.code", code.String()),
+		duration,
+	)
 }
